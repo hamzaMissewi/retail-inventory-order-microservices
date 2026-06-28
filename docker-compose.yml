@@ -1,0 +1,45 @@
+version: '3.8'
+services:
+    mongo-products:
+        image: mongo:6
+        container_name: mongo-products
+        ports:
+            - '27017:27017'
+        volumes:
+            - mongo-products-data:/data/db
+
+    mongo-orders:
+        image: mongo:6
+        container_name: mongo-orders
+        ports:
+            - '27018:27017'
+        volumes:
+            - mongo-orders-data:/data/db
+
+    product-service:
+        build: ./product-service
+        container_name: product-service
+        ports:
+            - '3001:3001'
+        environment:
+            - MONGO_URI=mongodb://mongo-products:27017/products
+        depends_on:
+            - mongo-products
+        restart: on-failure
+
+    order-service:
+        build: ./order-service
+        container_name: order-service
+        ports:
+            - '3002:3002'
+        environment:
+            - MONGO_URI=mongodb://mongo-orders:27017/orders
+            - PRODUCT_SERVICE_URL=http://product-service:3001
+        depends_on:
+            - mongo-products
+            - product-service
+        restart: on-failure
+
+volumes:
+    mongo-products-data:
+    mongo-orders-data:
