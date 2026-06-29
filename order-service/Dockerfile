@@ -1,7 +1,8 @@
 FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-EXPOSE 3001
+WORKDIR /app/order-service
+COPY order-service/package*.json ./
+RUN npm install --omit=dev
+COPY shared/ ./shared/
+COPY order-service/ .
+EXPOSE 3002
 CMD ["node", "server.js"]

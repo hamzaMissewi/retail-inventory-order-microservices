@@ -4,3 +4,6 @@ metadata:
     name: app-config
 data:
     product_service_url: 'http://product-service:3001'
+    order_service_url: 'http://order-service:3002'
+    customer_service_url: 'http://customer-service:3003'
+    notification_service_url: 'http://notification-service:3004'

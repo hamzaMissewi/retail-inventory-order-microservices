@@ -1,0 +1,69 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: customer-service
+    labels:
+        app: customer-service
+spec:
+    replicas: 2
+    selector:
+        matchLabels:
+            app: customer-service
+    template:
+        metadata:
+            labels:
+                app: customer-service
+        spec:
+            containers:
+                - name: customer
+                  image: your-registry/customer-service:latest
+                  ports:
+                      - containerPort: 3003
+                  env:
+                      - name: PORT
+                        value: '3003'
+                      - name: MONGO_URI
+                        valueFrom:
+                            secretKeyRef:
+                                name: mongodb-secret
+                                key: uri_customers
+                      - name: JWT_SECRET
+                        valueFrom:
+                            secretKeyRef:
+                                name: jwt-secret
+                                key: secret
+                  livenessProbe:
+                      httpGet:
+                          path: /health
+                          port: 3003
+                      initialDelaySeconds: 10
+                      periodSeconds: 10
+                  readinessProbe:
+                      httpGet:
+                          path: /health
+                          port: 3003
+                      initialDelaySeconds: 5
+                      periodSeconds: 5
+                  resources:
+                      requests:
+                          memory: '128Mi'
+                          cpu: '100m'
+                      limits:
+                          memory: '256Mi'
+                          cpu: '250m'
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: customer-service
+    labels:
+        app: customer-service
+spec:
+    type: ClusterIP
+    ports:
+        - port: 3003
+          targetPort: 3003
+          protocol: TCP
+          name: http
+    selector:
+        app: customer-service

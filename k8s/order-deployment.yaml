@@ -2,6 +2,8 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
     name: order-service
+    labels:
+        app: order-service
 spec:
     replicas: 2
     selector:
@@ -14,7 +16,7 @@ spec:
         spec:
             containers:
                 - name: order
-                  image: your-registry/order-service:latest # CHANGE THIS
+                  image: your-registry/order-service:latest
                   ports:
                       - containerPort: 3002
                   env:
@@ -30,9 +32,32 @@ spec:
                                 key: product_service_url
                       - name: PORT
                         value: '3002'
+                      - name: LINKEDIN_ACCESS_TOKEN
+                        valueFrom:
+                            secretKeyRef:
+                                name: linkedin-secret
+                                key: access_token
+                      - name: LINKEDIN_PERSON_ID
+                        valueFrom:
+                            secretKeyRef:
+                                name: linkedin-secret
+                                key: person_id
                   livenessProbe:
                       httpGet:
                           path: /health
                           port: 3002
                       initialDelaySeconds: 10
+                      periodSeconds: 10
+                  readinessProbe:
+                      httpGet:
+                          path: /health
+                          port: 3002
+                      initialDelaySeconds: 5
                       periodSeconds: 5
+                  resources:
+                      requests:
+                          memory: '128Mi'
+                          cpu: '100m'
+                      limits:
+                          memory: '256Mi'
+                          cpu: '250m'

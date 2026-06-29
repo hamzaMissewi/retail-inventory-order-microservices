@@ -1,5 +1,6 @@
 version: '3.8'
 services:
+    # ---------- Databases ----------
     mongo-products:
         image: mongo:6
         container_name: mongo-products
@@ -7,6 +8,10 @@ services:
             - '27017:27017'
         volumes:
             - mongo-products-data:/data/db
+        healthcheck:
+            test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+            interval: 10s
+            retries: 5
 
     mongo-orders:
         image: mongo:6
@@ -15,31 +20,118 @@ services:
             - '27018:27017'
         volumes:
             - mongo-orders-data:/data/db
+        healthcheck:
+            test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+            interval: 10s
+            retries: 5
 
+    mongo-customers:
+        image: mongo:6
+        container_name: mongo-customers
+        ports:
+            - '27019:27017'
+        volumes:
+            - mongo-customers-data:/data/db
+        healthcheck:
+            test: echo 'db.runCommand("ping").ok' | mongosh --quiet
+            interval: 10s
+            retries: 5
+
+    # ---------- API Gateway ----------
+    api-gateway:
+        build:
+            context: .
+            dockerfile: api-gateway/Dockerfile
+        container_name: api-gateway
+        ports:
+            - '3000:3000'
+        environment:
+            - PORT=3000
+            - PRODUCT_SERVICE_URL=http://product-service:3001
+            - ORDER_SERVICE_URL=http://order-service:3002
+            - CUSTOMER_SERVICE_URL=http://customer-service:3003
+            - NOTIFICATION_SERVICE_URL=http://notification-service:3004
+        depends_on:
+            - product-service
+            - order-service
+            - customer-service
+            - notification-service
+        restart: on-failure
+
+    # ---------- Product Service ----------
     product-service:
-        build: ./product-service
+        build:
+            context: .
+            dockerfile: product-service/Dockerfile
         container_name: product-service
         ports:
             - '3001:3001'
         environment:
+            - PORT=3001
             - MONGO_URI=mongodb://mongo-products:27017/products
+            - JWT_SECRET=${JWT_SECRET:-retail-dev-secret-change-in-production}
         depends_on:
-            - mongo-products
+            mongo-products:
+                condition: service_started
         restart: on-failure
 
+    # ---------- Order Service ----------
     order-service:
-        build: ./order-service
+        build:
+            context: .
+            dockerfile: order-service/Dockerfile
         container_name: order-service
         ports:
             - '3002:3002'
         environment:
+            - PORT=3002
             - MONGO_URI=mongodb://mongo-orders:27017/orders
             - PRODUCT_SERVICE_URL=http://product-service:3001
+            - LINKEDIN_ACCESS_TOKEN=${LINKEDIN_ACCESS_TOKEN:-}
+            - LINKEDIN_PERSON_ID=${LINKEDIN_PERSON_ID:-}
         depends_on:
-            - mongo-products
-            - product-service
+            mongo-orders:
+                condition: service_started
+            # - product-service
+        restart: on-failure
+
+    # ---------- Customer Service ----------
+    customer-service:
+        build:
+            context: .
+            dockerfile: customer-service/Dockerfile
+        container_name: customer-service
+        ports:
+            - '3003:3003'
+        environment:
+            - PORT=3003
+            - MONGO_URI=mongodb://mongo-customers:27017/customers
+            - JWT_SECRET=${JWT_SECRET:-retail-dev-secret-change-in-production}
+        depends_on:
+            mongo-customers:
+                condition: service_started
+        restart: on-failure
+
+    # ---------- Notification Service ----------
+    notification-service:
+        build:
+            context: .
+            dockerfile: notification-service/Dockerfile
+        container_name: notification-service
+        ports:
+            - '3004:3004'
+        environment:
+            - PORT=3004
+            - LINKEDIN_ACCESS_TOKEN=${LINKEDIN_ACCESS_TOKEN:-}
+            - LINKEDIN_PERSON_ID=${LINKEDIN_PERSON_ID:-}
+            - SMTP_HOST=${SMTP_HOST:-}
+            - SMTP_PORT=${SMTP_PORT:-587}
+            - SMTP_USER=${SMTP_USER:-}
+            - SMTP_PASS=${SMTP_PASS:-}
+            - SMTP_FROM=${SMTP_FROM:-}
         restart: on-failure
 
 volumes:
     mongo-products-data:
     mongo-orders-data:
+    mongo-customers-data:

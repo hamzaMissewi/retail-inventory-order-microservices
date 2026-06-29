@@ -1,0 +1,67 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: api-gateway
+    labels:
+        app: api-gateway
+spec:
+    replicas: 2
+    selector:
+        matchLabels:
+            app: api-gateway
+    template:
+        metadata:
+            labels:
+                app: api-gateway
+        spec:
+            containers:
+                - name: gateway
+                  image: your-registry/api-gateway:latest
+                  ports:
+                      - containerPort: 3000
+                  env:
+                      - name: PORT
+                        value: '3000'
+                      - name: PRODUCT_SERVICE_URL
+                        value: 'http://product-service:3001'
+                      - name: ORDER_SERVICE_URL
+                        value: 'http://order-service:3002'
+                      - name: CUSTOMER_SERVICE_URL
+                        value: 'http://customer-service:3003'
+                      - name: NOTIFICATION_SERVICE_URL
+                        value: 'http://notification-service:3004'
+                  livenessProbe:
+                      httpGet:
+                          path: /health
+                          port: 3000
+                      initialDelaySeconds: 10
+                      periodSeconds: 10
+                  readinessProbe:
+                      httpGet:
+                          path: /health
+                          port: 3000
+                      initialDelaySeconds: 5
+                      periodSeconds: 5
+                  resources:
+                      requests:
+                          memory: '128Mi'
+                          cpu: '100m'
+                      limits:
+                          memory: '256Mi'
+                          cpu: '250m'
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: api-gateway
+    labels:
+        app: api-gateway
+spec:
+    type: ClusterIP
+    ports:
+        - port: 3000
+          targetPort: 3000
+          protocol: TCP
+          name: http
+    selector:
+        app: api-gateway

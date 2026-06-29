@@ -1,0 +1,24 @@
+{
+    "name": "api-gateway",
+    "version": "1.0.0",
+    "description": "API Gateway for all retail microservices",
+    "main": "server.js",
+    "scripts": {
+        "start": "node server.js",
+        "dev": "nodemon server.js"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "express": "^4.18.2",
+        "express-rate-limit": "^7.1.4",
+        "helmet": "^7.1.0",
+        "http-proxy-middleware": "^2.0.6",
+        "pino": "^8.15.0",
+        "pino-pretty": "^10.2.3",
+        "prom-client": "^14.2.0",
+        "uuid": "^9.0.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.0.1"
+    }
+}
